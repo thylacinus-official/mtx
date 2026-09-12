@@ -1,0 +1,17 @@
+# Environment variables and secrets
+.env
+*.env.local
+
+# Persistent storage (Volumes)
+data/
+caddy_data/
+tuwunel_data/
+
+# OS and IDE generated files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
