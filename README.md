@@ -115,6 +115,11 @@ conf/element/config.<your-domain>.json
 
 Caddy will serve it at `https://<your-domain>/config.<your-domain>.json`.
 
+
+### 3. Modular Caddy Extensions
+
+You can add custom Caddy snippets or separate site blocks by placing them into ./conf/caddy/includes/ or ./conf/caddy/sites/.
+
 ---
 
 ## Maintenance

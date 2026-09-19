@@ -1,6 +1,10 @@
 networks:
-  mtx_net:
+  internal:
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${MTX_NETWORK_SUBNET:-172.28.0.0/16}
+          gateway: ${MTX_NETWORK_GATEWAY:-172.28.0.1}
 
 volumes:
   caddy_data:
@@ -18,10 +22,11 @@ services:
     extra_hosts:
       - "livekit:host-gateway"
     networks:
-      - mtx_net
+      - internal
     volumes:
       - ./conf/Caddyfile:/etc/caddy/Caddyfile
-      - ./conf/element:/usr/share/caddy/element
+      - ./conf/caddy:/etc/caddy/optional
+      - ./conf/element:/etc/element
       - caddy_data:/data/caddy
     environment:
       MTX_ELEMENT_DOMAIN: "${MTX_ELEMENT_DOMAIN:-${MTX_DOMAIN:?Error: MTX_ELEMENT_DOMAIN is required}}"
@@ -45,7 +50,7 @@ services:
     container_name: tuwunel
     restart: unless-stopped
     networks:
-      - mtx_net
+      - internal
     volumes:
       - tuwunel_data:/var/lib/tuwunel
     environment:
@@ -67,7 +72,7 @@ services:
     profiles:
       - web
     networks:
-      - mtx_net
+      - internal
     environment:
       ELEMENT_WEB_PORT: "${MTX_ELEMENT_PORT:-80}"
     deploy:
@@ -124,7 +129,7 @@ services:
     container_name: livekit-jwt
     restart: unless-stopped
     networks:
-      - mtx_net
+      - internal
     environment:
       LIVEKIT_FULL_ACCESS_HOMESERVERS: "${MTX_TUWUNEL_DOMAIN:-${MTX_DOMAIN}}"
       LIVEKIT_KEY: "${MTX_LIVEKIT_KEY:-devkey}"

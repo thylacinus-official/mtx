@@ -1,77 +1,101 @@
-# https://github.com/element-hq/lk-jwt-service
-# https://github.com/element-hq/element-call/blob/main/docs/self_hosting.md
+import /etc/caddy/optional/sites/*
 
-{$MTX_LIVEKIT_DOMAIN}/livekit/jwt/* {
-    # /livekit/jwt/sfu/get
-    # /livekit/jwt/healthz
-    # /livekit/jwt/sfu_webhook
+{$MTX_LIVEKIT_DOMAIN}, {$MTX_TUWUNEL_DOMAIN}, {$MTX_ELEMENT_DOMAIN} {
 
-    uri strip_prefix /livekit/jwt
-    reverse_proxy livekit-jwt:{$MTX_LIVEKIT_JWT_PORT:8080}
-}
+    import /etc/caddy/optional/includes/*
 
-{$MTX_LIVEKIT_DOMAIN}/livekit/sfu/* {
-    uri strip_prefix /livekit/sfu
-    # Works via extra_hosts: ["livekit:host-gateway"] in docker-compose.yml
-    reverse_proxy livekit:{$MTX_LIVEKIT_PORT:7880}
-}
+    @livekit_domain host {$MTX_LIVEKIT_DOMAIN}
+    @tuwunel_domain host {$MTX_TUWUNEL_DOMAIN}
+    @element_domain host {$MTX_ELEMENT_DOMAIN}
+    @element_root_failed {
+        host {$MTX_ELEMENT_DOMAIN}
+        path /
+    }
 
-{$MTX_TUWUNEL_DOMAIN}/_matrix/*,
-{$MTX_TUWUNEL_DOMAIN}/.well-known/matrix/*,
-{$MTX_TUWUNEL_DOMAIN}:{$MTX_FEDERATION_PORT:8448}/_matrix/*,
-{$MTX_TUWUNEL_DOMAIN}:{$MTX_FEDERATION_PORT:8448}/.well-known/matrix/* {
-    reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
-}
+    handle @livekit_domain {
+        # https://github.com/element-hq/lk-jwt-service
+        # https://github.com/element-hq/element-call/blob/main/docs/self_hosting.md
 
-{$MTX_ELEMENT_DOMAIN} {
-    encode zstd gzip
+        handle /livekit/jwt/* {
+            # /livekit/jwt/sfu/get
+            # /livekit/jwt/healthz
+            # /livekit/jwt/sfu_webhook
 
-    handle /config.json {
-        header Content-Type application/json
-        header Access-Control-Allow-Origin "*"
-        respond `{
-          "default_server_config": {
-            "m.homeserver": {
-              "base_url": "https://{$MTX_TUWUNEL_DOMAIN}",
-              "server_name": "{$MTX_TUWUNEL_SERVER_NAME}"
+            uri strip_prefix /livekit/jwt
+            reverse_proxy livekit-jwt:{$MTX_LIVEKIT_JWT_PORT:8080}
+        }
+
+        handle /livekit/sfu/* {
+            uri strip_prefix /livekit/sfu
+            # Works via extra_hosts: ["livekit:host-gateway"] in docker-compose.yml
+            reverse_proxy livekit:{$MTX_LIVEKIT_PORT:7880}
+        }
+    }
+
+    handle @tuwunel_domain {
+        handle /_matrix/* {
+            reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+        }
+
+        handle /.well-known/matrix/* {
+            reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+        }
+
+        # OPTIONAL: Root URL handling (Part 1 of 2). Can be safely removed.
+        # If Element & Tuwunel share domain -> proxies to Element, else -> Tuwunel welcome.
+        # NOTE: If removed, remove Part 2 in handle_errors too!
+        handle / {
+            @common_domain host {$MTX_ELEMENT_DOMAIN}
+
+            handle @common_domain {
+                reverse_proxy element:{$MTX_ELEMENT_PORT:80}
             }
-          },
-          "disable_custom_urls": true
-        }`
-    }
 
-    handle /config.{$MTX_ELEMENT_DOMAIN}.json {
-        root * /usr/share/caddy/element
-        file_server
-    }
-
-    reverse_proxy element:{$MTX_ELEMENT_PORT:80}
-}
-
-{$MTX_TUWUNEL_DOMAIN}/ {
-    # OPTIONAL BLOCK: Root URL handling for Matrix domain (/)
-    # ----------------------------------------------------------------------------------
-    # 1. If Element and Tuwunel share the same domain (MTX_ELEMENT_DOMAIN == MTX_TUWUNEL_DOMAIN):
-    #    proxies requests to the Element Web UI.
-    # 2. If domains are different: returns standard Tuwunel welcome/status response.
-    #
-    # This block can be safely removed without affecting Matrix API or LiveKit calls.
-    # ----------------------------------------------------------------------------------
-    @common_domain host {$MTX_ELEMENT_DOMAIN}
-
-    handle @common_domain {
-        reverse_proxy element:{$MTX_ELEMENT_PORT:80}
-    }
-
-    handle {
-        reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+            reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+        }
     }
 
     handle_errors {
-        @element_failed host {$MTX_ELEMENT_DOMAIN}
-
-        handle @element_failed {
-            reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+        # OPTIONAL: Root error fallback (Part 2 of 2). Remove with Part 1 if not needed.
+        handle @tuwunel_domain {
+            handle @element_root_failed {
+                reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+            }
         }
+    }
+
+    handle @element_domain {
+        encode zstd gzip
+
+        handle /config.json {
+            header Content-Type application/json
+            header Access-Control-Allow-Origin "*"
+            respond `{
+              "default_server_config": {
+                "m.homeserver": {
+                  "base_url": "https://{$MTX_TUWUNEL_DOMAIN}",
+                  "server_name": "{$MTX_TUWUNEL_SERVER_NAME}"
+                }
+              },
+              "disable_custom_urls": true
+            }`
+        }
+
+        handle /config.{$MTX_ELEMENT_DOMAIN}.json {
+            root * /etc/element
+            file_server
+        }
+
+        reverse_proxy element:{$MTX_ELEMENT_PORT:80}
+    }
+
+}
+
+{$MTX_TUWUNEL_DOMAIN}:{$MTX_FEDERATION_PORT:8448} {
+    handle /_matrix/* {
+        reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
+    }
+    handle /.well-known/matrix/* {
+        reverse_proxy tuwunel:{$MTX_TUWUNEL_PORT:8008}
     }
 }
