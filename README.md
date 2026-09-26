@@ -1,5 +1,10 @@
 # Self-Hosted Matrix Stack (Tuwunel & LiveKit)
 
+> **Status:** Personal pet project, maintained as-is.
+> No SLA, no support promises.
+> If it works for you — great. If it doesn't — open an issue,
+> I'll look when I can.
+
 A self-hosted Docker Compose stack for deploying a Matrix server with support for group video calls (Matrix 2.0 / Element Call) via LiveKit.
 
 ---
@@ -16,47 +21,69 @@ A self-hosted Docker Compose stack for deploying a Matrix server with support fo
 
 ## Requirements
 
+### Hardware (minimal)
+
+| Resource | Minimum | Recommended |
+|---|---|---|
+| CPU | 2 cores | 4 cores |
+| RAM | 2 GB | 4 GB |
+| Disk | 10 GB | 20 GB |
+| Internet | 10 Mbps | 50 Mbps |
+
+LiveKit uses a UDP range of 50000–60000 for media streams.
+The defaults are fine for 5–20 users on a single server.
+
+### Software & Network
+
 1. **Docker** and **Docker Compose v2** (`docker compose version`).
-2. DNS `A` record(s) pointing to your server (a single domain name is sufficient for the entire stack).
-3. Open firewall ports:
-    * **TCP 80, 443** — HTTP/HTTPS
-    * **TCP 8448** — Matrix Federation
-    * **UDP 3478** — LiveKit TURN
-    * **TCP 7881** — LiveKit RTC TCP
-    * **UDP 50000-60000** — LiveKit RTC UDP
+2. A **public IPv4** address (required for LiveKit WebRTC / TURN).
+3. DNS `A` record(s) pointing to your server (a single domain name is sufficient for the entire stack).
+4. Open firewall ports:
+   * **TCP 80, 443** — HTTP/HTTPS
+   * **TCP 8448** — Matrix Federation
+   * **UDP 3478** — LiveKit TURN
+   * **TCP 5349** — LiveKit TURN over TLS
+   * **TCP 7881** — LiveKit RTC TCP
+   * **UDP 50000–60000** — LiveKit RTC UDP
 
 ---
 
 ## Installation and Launch
 
-1. Copy the configuration template:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/thylacinus-official/mtx
+   cd mtx
+   ```
+
+2. Copy the configuration template:
    ```bash
    cp .env.example .env
    ```
 
-2. Generate secret keys:
+3. Generate secret keys:
    ```bash
    openssl rand -hex 32  # For MTX_LIVEKIT_SECRET
    openssl rand -hex 16  # For TUWUNEL_REGISTRATION_TOKEN
    ```
 
-3. Fill in the required parameters in `.env`:
-    * `LIVEKIT_RTC__NODE_IP` — Public IPv4 address of your server.
-    * `MTX_DOMAIN` — Your base domain name (e.g., `example.com`).
-    * `MTX_LIVEKIT_SECRET` — Generated 32-byte secret key.
-    * `TUWUNEL_REGISTRATION_TOKEN` — Generated 16-byte token.
+4. Fill in the required parameters in `.env`:
+   * `LIVEKIT_RTC__NODE_IP` — Public IPv4 address of your server.
+   * `MTX_DOMAIN` — Your base domain name (e.g., `example.com`).
+   * `MTX_LIVEKIT_SECRET` — Generated 32-byte secret key.
+   * `TUWUNEL_REGISTRATION_TOKEN` — Generated 16-byte token.
 
-4. Launch the stack:
+5. Launch the stack:
 
-    * **Standard Setup** (without Element Web):
-      ```bash
-      docker compose up -d
-      ```
+   * **Standard Setup** (without Element Web):
+     ```bash
+     docker compose up -d
+     ```
 
-    * **Setup with Element Web**:
-      ```bash
-      docker compose --profile web up -d
-      ```
+   * **Setup with Element Web**:
+     ```bash
+     docker compose --profile web up -d
+     ```
 
 > **Customization Note:**  
 > All additional parameters (port customization, separate domains per service, Docker image versions) are fully documented and commented inside `.env.example`.
@@ -118,7 +145,7 @@ Caddy will serve it at `https://<your-domain>/config.<your-domain>.json`.
 
 ### 3. Modular Caddy Extensions
 
-You can add custom Caddy snippets or separate site blocks by placing them into ./conf/caddy/includes/ or ./conf/caddy/sites/.
+You can add custom Caddy snippets or separate site blocks by placing them into `./conf/caddy/includes/` or `./conf/caddy/sites/`.
 
 ---
 
