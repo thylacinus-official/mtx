@@ -39,14 +39,14 @@ services:
       MTX_TUWUNEL_PORT: "${MTX_TUWUNEL_PORT:-8008}"
       MTX_TUWUNEL_SERVER_NAME: "${MTX_TUWUNEL_SERVER_NAME:-${MTX_DOMAIN:?Error: MTX_DOMAIN or MTX_TUWUNEL_SERVER_NAME is required}}"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:2019/metrics"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:2019/metrics" ]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
 
   tuwunel:
-    image: jevolk/tuwunel:v${MTX_TUWUNEL_VERSION:-1.9.0}
+    image: jevolk/tuwunel:${MTX_TUWUNEL_VERSION:-v1.9.0}
     container_name: tuwunel
     restart: unless-stopped
     networks:
@@ -66,7 +66,7 @@ services:
       TUWUNEL_WELL_KNOWN__SERVER: "${MTX_TUWUNEL_DOMAIN:-${MTX_DOMAIN}}:${MTX_FEDERATION_PORT:-8448}"
 
   element:
-    image: vectorim/element-web:v${MTX_ELEMENT_VERSION:-1.12.27}
+    image: vectorim/element-web:${MTX_ELEMENT_VERSION:-v1.12.27}
     container_name: element
     restart: unless-stopped
     profiles:
@@ -81,7 +81,7 @@ services:
           memory: 256M
 
   livekit:
-    image: livekit/livekit-server:v${MTX_LIVEKIT_VERSION:-1.13.6}
+    image: livekit/livekit-server:${MTX_LIVEKIT_VERSION:-v1.13.6}
     container_name: livekit
     restart: unless-stopped
     network_mode: "host"
@@ -90,10 +90,10 @@ services:
     environment:
       LIVEKIT_CONFIG: |
         port: ${MTX_LIVEKIT_PORT:-7880}
-        
+
         keys:
           ${MTX_LIVEKIT_KEY:-devkey}: ${MTX_LIVEKIT_SECRET:?Error: MTX_LIVEKIT_SECRET is required}
-        
+
         rtc:
           use_external_ip: false
           node_ip: ${LIVEKIT_RTC__NODE_IP:?Error: LIVEKIT_RTC__NODE_IP is required}
@@ -104,7 +104,7 @@ services:
             excludes:
               - "172.17.0.0/16"
               - "172.18.0.0/16"
-        
+
         turn:
           enabled: true
           domain: ${MTX_LIVEKIT_DOMAIN:-${MTX_DOMAIN}}
@@ -112,13 +112,13 @@ services:
           tls_port: 5349
           cert_file: /caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MTX_LIVEKIT_DOMAIN:-${MTX_DOMAIN}}/${MTX_LIVEKIT_DOMAIN:-${MTX_DOMAIN}}.crt
           key_file: /caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MTX_LIVEKIT_DOMAIN:-${MTX_DOMAIN}}/${MTX_LIVEKIT_DOMAIN:-${MTX_DOMAIN}}.key
-        
+
         webhook:
           api_key: ${MTX_LIVEKIT_KEY:-devkey}
           urls:
             - https://${MTX_LIVEKIT_DOMAIN:-${MTX_DOMAIN}}/livekit/jwt/sfu_webhook
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${MTX_LIVEKIT_PORT:-7880}/ || exit 1"]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${MTX_LIVEKIT_PORT:-7880}/ || exit 1" ]
       interval: 10s
       timeout: 3s
       retries: 3
