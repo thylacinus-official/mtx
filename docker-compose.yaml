@@ -46,7 +46,7 @@ services:
       start_period: 10s
 
   tuwunel:
-    image: jevolk/tuwunel:${MTX_TUWUNEL_VERSION:-v1.9.0}
+    image: jevolk/tuwunel:${MTX_TUWUNEL_VERSION:-v1.9.3}
     container_name: tuwunel
     restart: unless-stopped
     networks:
@@ -66,7 +66,7 @@ services:
       TUWUNEL_WELL_KNOWN__SERVER: "${MTX_TUWUNEL_DOMAIN:-${MTX_DOMAIN}}:${MTX_FEDERATION_PORT:-8448}"
 
   element:
-    image: vectorim/element-web:${MTX_ELEMENT_VERSION:-v1.12.27}
+    image: vectorim/element-web:${MTX_ELEMENT_VERSION:-v1.12.29}
     container_name: element
     restart: unless-stopped
     profiles:
@@ -81,7 +81,7 @@ services:
           memory: 256M
 
   livekit:
-    image: livekit/livekit-server:${MTX_LIVEKIT_VERSION:-v1.13.6}
+    image: livekit/livekit-server:${MTX_LIVEKIT_VERSION:-v1.13.7}
     container_name: livekit
     restart: unless-stopped
     network_mode: "host"
